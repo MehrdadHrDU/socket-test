@@ -9,9 +9,9 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.util.CharsetUtil;
 
-public class EchoServer {
+public class Server {
     private final int port;
-    public EchoServer(int port) { this.port = port; }
+    public Server(int port) { this.port = port; }
 
     public void start() throws InterruptedException {
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
@@ -44,6 +44,6 @@ public class EchoServer {
 
     public static void main(String[] args) throws InterruptedException {
         int port = 8080;
-        new EchoServer(port).start();
+        new Server(port).start();
     }
 }
