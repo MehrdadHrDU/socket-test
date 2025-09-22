@@ -29,7 +29,7 @@ public class EchoServer {
                             ChannelPipeline p = ch.pipeline();
                             p.addLast(new StringDecoder(CharsetUtil.UTF_8));
                             p.addLast(new StringEncoder(CharsetUtil.UTF_8));
-                            p.addLast(new TimeServerHandler());
+                            p.addLast(new ServerHandler());
                         }
                     });
 

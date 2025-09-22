@@ -5,7 +5,6 @@ import java.util.Map;
 
 public class ParsedMessage {
         private String tag;
-        private String initialDate;
         private int paramCount;
         private Map<String, String> params = new HashMap<>();
 
@@ -15,14 +14,6 @@ public class ParsedMessage {
 
     public void setTag(String tag) {
         this.tag = tag;
-    }
-
-    public String getInitialDate() {
-        return initialDate;
-    }
-
-    public void setInitialDate(String initialDate) {
-        this.initialDate = initialDate;
     }
 
     public int getParamCount() {
