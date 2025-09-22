@@ -27,28 +27,34 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
                 return;
             }
 
-            String tag = parts[0];
+            ParsedMessage parsed = new ParsedMessage();
+            parsed.setTag(parts[0]);
+
             int paramCount;
             try {
                 paramCount = Integer.parseInt(parts[2]);
+                parsed.setParamCount(paramCount);
             } catch (NumberFormatException e) {
-                sendAndLog(ctx, buildErrorMessage(tag, "paramCount is not a number"));
+                sendAndLog(ctx, buildErrorMessage(parsed.getTag(), "paramCount is not a number"));
                 return;
             }
 
             Map<String, String> params = new HashMap<>();
             for (int i = 3; i < parts.length; i++) {
                 String[] kv = parts[i].split("=", 2);
-                if (kv.length == 2) params.put(kv[0], kv[1]);
+                if (kv.length == 2) {
+                    params.put(kv[0], kv[1]);
+                }
             }
+            parsed.setParams(params);
 
-            if (paramCount != params.size()) {
-                sendAndLog(ctx, buildErrorMessage(tag,
-                        "Parameter count mismatch! Expected=" + paramCount + ", Actual=" + params.size()));
+            if (parsed.getParamCount() != parsed.getParams().size()) {
+                sendAndLog(ctx, buildErrorMessage(parsed.getTag(),
+                        "Parameter count mismatch! Expected=" + parsed.getParamCount() + ", Actual=" + parsed.getParams().size()));
                 return;
             }
 
-            sendAndLog(ctx, buildMessage(tag, params));
+            sendAndLog(ctx, buildMessage(parsed));
 
         } catch (Exception e) {
             sendAndLog(ctx, buildErrorMessage("ERROR", "Error parsing message"));
@@ -60,19 +66,26 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         ctx.writeAndFlush(message + "\n");
     }
 
-    private String buildMessage(String tag, Map<String, String> params) {
+    private String buildMessage(ParsedMessage parsed) {
         String formattedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-        StringBuilder sb = new StringBuilder(tag)
-                .append(";").append(formattedDate)
-                .append(";").append(params.size()).append(";");
-        params.forEach((k, v) -> sb.append(k).append("=").append(v).append(";"));
+        StringBuilder sb = new StringBuilder(parsed.getTag())
+                .append(";")
+                .append(formattedDate)
+                .append(";")
+                .append(parsed.getParamCount())
+                .append(";");
+        parsed.getParams().forEach((k, v) -> sb.append(k).append("=").append(v).append(";"));
         sb.append("#");
         return sb.toString();
     }
 
     private String buildErrorMessage(String tag, String error) {
+        ParsedMessage errorMsg = new ParsedMessage();
+        errorMsg.setTag(tag);
+        errorMsg.setParamCount(1);
         Map<String, String> params = new HashMap<>();
         params.put("error", error);
-        return buildMessage(tag, params);
+        errorMsg.setParams(params);
+        return buildMessage(errorMsg);
     }
 }
