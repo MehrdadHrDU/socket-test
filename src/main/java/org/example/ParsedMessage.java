@@ -4,9 +4,18 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ParsedMessage {
-        private String tag;
-        private int paramCount;
-        private Map<String, String> params = new HashMap<>();
+    private String tag;
+    private String date;
+    private Map<String, String> params = new HashMap<>();
+
+    public String getDate() {
+        return date;
+    }
+
+    public void setDate(String date) {
+        this.date = date;
+    }
+
 
     public String getTag() {
         return tag;
@@ -14,14 +23,6 @@ public class ParsedMessage {
 
     public void setTag(String tag) {
         this.tag = tag;
-    }
-
-    public int getParamCount() {
-        return paramCount;
-    }
-
-    public void setParamCount(int paramCount) {
-        this.paramCount = paramCount;
     }
 
     public Map<String, String> getParams() {

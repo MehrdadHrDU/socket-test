@@ -15,64 +15,71 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         msg = msg.trim();
 
         try {
-            if (!msg.endsWith("#")) {
-                sendAndLog(ctx, buildErrorMessage("ERROR", "Message must end with #"));
-                return;
+
+            ParsedMessage parsedMessage = parseAndLog(msg);
+            switch (parsedMessage.getTag()) {
+                case "GET_DATE":
+                    ParsedMessage parsedDateMessage = new ParsedMessage();
+                    parsedDateMessage.setDate(new  SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+                    parsedDateMessage.setTag("SET_DATE");
+                    Map<String,String> map = new HashMap<>();
+                    map.put("date",new  SimpleDateFormat("yyyyMMddHHmmss").format(new Date()));
+                    parsedDateMessage.setParams(map);
+                    parsedDateMessage.getParams().size();
+                    ctx.writeAndFlush(buildMessage(parsedDateMessage));
+                    break;
+                default:
+                    ctx.writeAndFlush(buildErrorMessage(parsedMessage.getTag(),
+                            "Parameter count mismatch! Expected=" + parsedMessage.getParams().size() +
+                                    ", Actual=" + parsedMessage.getParams().size()));
+
             }
-
-            msg = msg.substring(0, msg.length() - 1);
-            String[] parts = msg.split(";");
-            if (parts.length < 3) {
-                sendAndLog(ctx, buildErrorMessage("ERROR", "Invalid message format"));
-                return;
-            }
-
-            ParsedMessage parsed = new ParsedMessage();
-            parsed.setTag(parts[0]);
-
-            int paramCount;
-            try {
-                paramCount = Integer.parseInt(parts[2]);
-                parsed.setParamCount(paramCount);
-            } catch (NumberFormatException e) {
-                sendAndLog(ctx, buildErrorMessage(parsed.getTag(), "paramCount is not a number"));
-                return;
-            }
-
-            Map<String, String> params = new HashMap<>();
-            for (int i = 3; i < parts.length; i++) {
-                String[] kv = parts[i].split("=", 2);
-                if (kv.length == 2) {
-                    params.put(kv[0], kv[1]);
-                }
-            }
-            parsed.setParams(params);
-
-            if (parsed.getParamCount() != parsed.getParams().size()) {
-                sendAndLog(ctx, buildErrorMessage(parsed.getTag(),
-                        "Parameter count mismatch! Expected=" + parsed.getParamCount() + ", Actual=" + parsed.getParams().size()));
-                return;
-            }
-
-            sendAndLog(ctx, buildMessage(parsed));
 
         } catch (Exception e) {
-            sendAndLog(ctx, buildErrorMessage("ERROR", "Error parsing message"));
+            ctx.writeAndFlush(buildErrorMessage("ERROR", "Error parsing message"));
         }
     }
 
-    private void sendAndLog(ChannelHandlerContext ctx, String message) {
-        System.out.println(message);
-        ctx.writeAndFlush(message + "\n");
+    private ParsedMessage parseAndLog(String msg) {
+        if (!msg.endsWith("#")) {
+            throw new RuntimeException();
+        }
+
+        msg = msg.substring(0, msg.length() - 1);
+        String[] parts = msg.split(";");
+        if (parts.length < 3) {
+            throw new RuntimeException();
+        }
+
+        ParsedMessage parsed = new ParsedMessage();
+        parsed.setTag(parts[0]);
+        parsed.setDate(parts[1]);
+
+        Map<String, String> params = new HashMap<>();
+        for (int i = 3; i < parts.length; i++) {
+            String[] kv = parts[i].split("=", 2);
+            if (kv.length == 2) {
+                params.put(kv[0], kv[1]);
+            }
+        }
+        parsed.setParams(params);
+
+        String formattedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+        if (parsed.getTag().contains("GET_DATE")) {
+            parsed.getParams().put("c_dt", formattedDate);
+        }
+
+        return parsed;
     }
+
 
     private String buildMessage(ParsedMessage parsed) {
         String formattedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
         StringBuilder sb = new StringBuilder(parsed.getTag())
                 .append(";")
-                .append(formattedDate)
+                .append(parsed.getDate())
                 .append(";")
-                .append(parsed.getParamCount())
+                .append(parsed.getParams().size())
                 .append(";");
         parsed.getParams().forEach((k, v) -> sb.append(k).append("=").append(v).append(";"));
         sb.append("#");
@@ -82,7 +89,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     private String buildErrorMessage(String tag, String error) {
         ParsedMessage errorMsg = new ParsedMessage();
         errorMsg.setTag(tag);
-        errorMsg.setParamCount(1);
+        errorMsg.getParams().size();
         Map<String, String> params = new HashMap<>();
         params.put("error", error);
         errorMsg.setParams(params);
