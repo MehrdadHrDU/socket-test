@@ -16,78 +16,63 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
         try {
             if (!msg.endsWith("#")) {
-                String errorMsg = buildErrorMessage("ERROR", "Message must end with #");
-                ctx.writeAndFlush(errorMsg + "\n");
-                System.out.println(errorMsg);
+                sendAndLog(ctx, buildErrorMessage("ERROR", "Message must end with #"));
                 return;
             }
 
             msg = msg.substring(0, msg.length() - 1);
-
             String[] parts = msg.split(";");
             if (parts.length < 3) {
-                String errorMsg = buildErrorMessage("ERROR", "Invalid message format");
-                ctx.writeAndFlush(errorMsg + "\n");
-                System.out.println(errorMsg);
+                sendAndLog(ctx, buildErrorMessage("ERROR", "Invalid message format"));
                 return;
             }
 
             String tag = parts[0];
             int paramCount;
-
             try {
                 paramCount = Integer.parseInt(parts[2]);
             } catch (NumberFormatException e) {
-                String errorMsg = buildErrorMessage(tag, "paramCount is not a number");
-                ctx.writeAndFlush(errorMsg + "\n");
-                System.out.println(errorMsg);
+                sendAndLog(ctx, buildErrorMessage(tag, "paramCount is not a number"));
                 return;
             }
 
             Map<String, String> params = new HashMap<>();
             for (int i = 3; i < parts.length; i++) {
                 String[] kv = parts[i].split("=", 2);
-                if (kv.length == 2) {
-                    params.put(kv[0], kv[1]);
-                }
+                if (kv.length == 2) params.put(kv[0], kv[1]);
             }
 
-            String consoleMsg = buildMessage(tag, params);
-            System.out.println(consoleMsg);
+            if (paramCount != params.size()) {
+                sendAndLog(ctx, buildErrorMessage(tag,
+                        "Parameter count mismatch! Expected=" + paramCount + ", Actual=" + params.size()));
+                return;
+            }
 
-            ctx.writeAndFlush(consoleMsg + "\n");
+            sendAndLog(ctx, buildMessage(tag, params));
 
         } catch (Exception e) {
-            String errorMsg = buildErrorMessage("ERROR", "Error parsing message");
-            ctx.writeAndFlush(errorMsg + "\n");
-            System.out.println(errorMsg);
+            sendAndLog(ctx, buildErrorMessage("ERROR", "Error parsing message"));
         }
+    }
+
+    private void sendAndLog(ChannelHandlerContext ctx, String message) {
+        System.out.println(message);
+        ctx.writeAndFlush(message + "\n");
     }
 
     private String buildMessage(String tag, Map<String, String> params) {
         String formattedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-        StringBuilder sb = new StringBuilder();
-        sb.append(tag).append(";").append(formattedDate).append(";").append(params.size()).append(";");
-
-        for (Map.Entry<String, String> entry : params.entrySet()) {
-            sb.append(entry.getKey()).append("=").append(entry.getValue()).append(";");
-        }
-
+        StringBuilder sb = new StringBuilder(tag)
+                .append(";").append(formattedDate)
+                .append(";").append(params.size()).append(";");
+        params.forEach((k, v) -> sb.append(k).append("=").append(v).append(";"));
         sb.append("#");
         return sb.toString();
     }
 
-    private String buildErrorMessage(String tag, String errorMessage) {
-        Map<String, String> errorParam = new HashMap<>();
-        errorParam.put("error", errorMessage);
-        return buildMessage(tag, errorParam);
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        String errorMsg = buildErrorMessage("ERROR", "Exception caught: " + cause.getMessage());
-        System.out.println(errorMsg);
-        ctx.writeAndFlush(errorMsg + "\n");
-        ctx.close();
+    private String buildErrorMessage(String tag, String error) {
+        Map<String, String> params = new HashMap<>();
+        params.put("error", error);
+        return buildMessage(tag, params);
     }
 }
