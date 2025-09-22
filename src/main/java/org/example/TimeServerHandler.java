@@ -13,10 +13,6 @@ public class TimeServerHandler extends SimpleChannelInboundHandler<String> {
         msg = msg.trim();
 
         try {
-            if (!msg.startsWith("GET_DATE")) {
-                ctx.writeAndFlush("Error: Unsupported tag! Only GET_DATE allowed\n");
-                return;
-            }
 
             if (!msg.endsWith("#")) {
                 ctx.writeAndFlush("Error: Message must end with #\n");
