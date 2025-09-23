@@ -8,6 +8,16 @@ public class ParsedMessage {
     private String date;
     private Map<String, String> params = new HashMap<>();
 
+
+    public ParsedMessage(String tag, String date, Map<String, String> params) {
+        this.tag = tag;
+        this.date = date;
+        this.params = params;
+    }
+
+    public ParsedMessage() {
+    }
+
     public String getDate() {
         return date;
     }
